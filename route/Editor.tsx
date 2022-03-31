@@ -3,11 +3,12 @@ import {Editor} from 'amis-editor';
 import {inject, observer} from 'mobx-react';
 import {IMainStore} from '../store';
 import {RouteComponentProps} from 'react-router-dom';
-import {Layout, Switch, classnames as cx, toast} from 'amis';
+import {Layout, Switch, classnames as cx, toast, alert} from 'amis';
 import '../renderer/MyRenderer';
 import '../editor/MyRenderer';
+import axios from 'axios';
 
-let currentIndex = -1;
+let currentId = -1;
 
 let host = `${window.location.protocol}//${window.location.host}`;
 let iframeUrl = '/editor.html';
@@ -25,20 +26,36 @@ __uri('amis/schema.json');
 
 export default inject('store')(
     observer(function ({store, location, history, match}: {store: IMainStore} & RouteComponentProps<{id: string}>) {
-        const index: number = parseInt(match.params.id, 10);
-
-        if (index !== currentIndex) {
-            currentIndex = index;
-            store.updateSchema(store.pages[index].schema);
+        const id: number = parseInt(match.params.id, 10);
+        const page: any = store.pages.find(v => v.id == match.params.id)
+        if (id !== currentId && page) {
+            currentId = id;
+            store.updateSchema(page.schema);
         }
 
         function save() {
-            store.updatePageSchemaAt(index);
-            toast.success('保存成功', '提示');
+            const findPage: any = store.pages.find(v => v.id == match.params.id)
+
+            axios.post('/api/config/update-page', { 
+                id: findPage.id * 1,
+                config: JSON.stringify(findPage.schema),
+            }).then(({ data }) => {
+                if(data.errno !== 0) {
+                    alert(data.msg, '保存页面失败')
+                    return
+                }
+
+                store.updatePageSchemaAt(findPage.id);
+                toast.success('保存成功', '提示');
+            }).catch(err => {
+                alert(err.message, "网络异常")
+            })
+
+
         }
 
         function exit() {
-            history.push(`/${store.pages[index].path}`);
+            history.push(page.path);
         }
 
         function renderHeader() {

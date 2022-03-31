@@ -1,12 +1,13 @@
 import React from 'react';
 import {observer, inject} from 'mobx-react';
 import {IMainStore} from '../store';
-import {Button, AsideNav, Layout, confirm} from 'amis';
+import {Button, AsideNav, Layout, confirm, alert} from 'amis';
 import {RouteComponentProps, matchPath, Switch, Route} from 'react-router';
 import {Link} from 'react-router-dom';
 import NotFound from './NotFound';
 import AMISRenderer from '../component/AMISRenderer';
 import AddPageModal from '../component/AddPageModal';
+import axios from 'axios';
 
 function isActive(link: any, location: any) {
     const ret = matchPath(location.pathname, {
@@ -25,9 +26,9 @@ export default inject('store')(
                 <div>
                     <div className={`a-Layout-headerBar`}>
                         <div className="hidden-xs p-t-sm pull-right">
-                            <Button size="sm" className="m-r-xs" level="success" disabled disabledTip="Todo...">
+                            {/* <Button size="sm" className="m-r-xs" level="success" disabled disabledTip="Todo...">
                                 全部导出
-                            </Button>
+                            </Button> */}
                             <Button size="sm" level="info" onClick={() => store.setAddPageIsOpen(true)}>
                                 新增页面
                             </Button>
@@ -40,10 +41,11 @@ export default inject('store')(
         function renderAside() {
             const navigations = store.pages.map(item => ({
                 label: item.label,
-                path: `/${item.path}`,
-                icon: item.icon
+                path: item.path,
+                icon: item.icon,
+                pageId: item.id
             }));
-            const paths = navigations.map(item => item.path);
+            const ids = navigations.map(item => item.pageId);
 
             return (
                 <AsideNav
@@ -99,7 +101,18 @@ export default inject('store')(
                                     onClick={(e: React.MouseEvent) => {
                                         e.preventDefault();
                                         confirm('确认要删除').then(confirmed => {
-                                            confirmed && store.removePageAt(paths.indexOf(link.path));
+                                            if(confirmed) {
+                                                axios.post('/api/config/delete-page', { id: link.pageId * 1 }).then(({ data }) => {
+                                                    if(data.errno !== 0) {
+                                                        alert(data.msg, '删除页面失败')
+                                                        return
+                                                    }
+                                    
+                                                    store.removePageAt(ids.indexOf(link.pageId));
+                                                }).catch(err => {
+                                                    alert(err.message, "网络异常")
+                                                })
+                                            }
                                         });
                                     }}
                                 />
@@ -113,7 +126,7 @@ export default inject('store')(
                                 className={'navbtn fa fa-pencil'}
                                 onClick={(e: React.MouseEvent) => {
                                     e.preventDefault();
-                                    history.push(`/edit/${paths.indexOf(link.path)}`);
+                                    history.push(`/edit/${link.pageId}`);
                                 }}
                             />
                         );
@@ -147,16 +160,33 @@ export default inject('store')(
             );
         }
 
-        function handleConfirm(value: {label: string; icon: string; path: string}) {
-            store.addPage({
-                ...value,
-                schema: {
+        function handleConfirm(value: {label: string; icon: string; path: string; adminPath: string}) {
+            const params = {
+                name: value.label,
+                path: value.path,
+                icon: value.icon,
+                config: JSON.stringify({
                     type: 'page',
                     title: value.label,
                     body: '这是你刚刚新增的页面。'
+                }),
+            }
+
+            axios.post('/api/config/create-page', params).then(({ data }) => {
+                if(data.errno !== 0) {
+                    alert(data.msg, '新增页面失败')
+                    return
                 }
-            });
-            store.setAddPageIsOpen(false);
+
+                store.addPage({
+                    ...value,
+                    id: `${data.data}`,
+                    schema: JSON.parse(params.config)
+                });
+                store.setAddPageIsOpen(false);
+            }).catch(err => {
+                alert(err.message, "网络异常")
+            })
         }
 
         return (
@@ -170,7 +200,7 @@ export default inject('store')(
                     {store.pages.map(item => (
                         <Route
                             key={item.id}
-                            path={`/${item.path}`}
+                            path={item.path}
                             render={() => <AMISRenderer schema={item.schema} />}
                         />
                     ))}

@@ -1,13 +1,15 @@
 import {types, getEnv, applySnapshot, getSnapshot} from 'mobx-state-tree';
 import {PageStore} from './Page';
 import {when, reaction} from 'mobx';
+import axios from 'axios';
+import { alert } from 'amis';
 let pagIndex = 1;
 export const MainStore = types
     .model('MainStore', {
         pages: types.optional(types.array(PageStore), [
             {
                 id: `${pagIndex}`,
-                path: 'hello-world',
+                path: '/hello-world',
                 label: 'Hello world',
                 icon: 'fa fa-file',
                 schema: {
@@ -57,12 +59,10 @@ export const MainStore = types
             self.addPageIsOpen = isOpened;
         }
 
-        function addPage(data: {label: string; path: string; icon?: string; schema?: any}) {
+        // 新增页面
+        function addPage(data: {label: string; path: string; icon?: string; schema?: any; id: string}) {
             self.pages.push(
-                PageStore.create({
-                    ...data,
-                    id: `${++pagIndex}`
-                })
+                PageStore.create(data)
             );
         }
 
@@ -70,7 +70,9 @@ export const MainStore = types
             self.pages.splice(index, 1);
         }
 
-        function updatePageSchemaAt(index: number) {
+        // 保存页面配置
+        function updatePageSchemaAt(id: string) {
+            const index =  self.pages.findIndex(v => v.id == id);
             self.pages[index].updateSchema(self.schema);
         }
 
@@ -86,6 +88,11 @@ export const MainStore = types
             self.isMobile = value;
         }
 
+        // 初始化页面列表
+        function initPages(value: any) {
+            self.pages = [...self.pages, ...value]
+        }
+
         return {
             toggleAsideFolded,
             toggleAsideFixed,
@@ -97,19 +104,40 @@ export const MainStore = types
             updateSchema,
             setPreview,
             setIsMobile,
+            initPages,
             afterCreate() {
-                // persist store
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    const storeData = window.localStorage.getItem('store');
-                    if (storeData) applySnapshot(self, JSON.parse(storeData));
+                // 初始化 store 执行一次
+                axios.get('/api/config/pages').then(({ data }) => {
+                    if(data.errno !== 0) {
+                        alert(data.msg, '获取页面数据失败')
+                        return
+                    }
 
-                    reaction(
-                        () => getSnapshot(self),
-                        json => {
-                            window.localStorage.setItem('store', JSON.stringify(json));
-                        }
-                    );
-                }
+                    const pages = data.data.items.map(v => ({
+                        id: `${v.id}`,
+                        label: v.name,
+                        path: v.path,
+                        icon: v.icon,
+                        schema: v.config ? JSON.parse(v.config) : { type: 'page' }
+                    }))
+
+                    self.initPages(pages)                    
+                }).catch((err) => {
+                    alert(err.message, '网络异常')
+                })
+
+                // persist store
+                // if (typeof window !== 'undefined' && window.localStorage) {
+                //     const storeData = window.localStorage.getItem('store');
+                //     if (storeData) applySnapshot(self, JSON.parse(storeData));
+
+                //     reaction(
+                //         () => getSnapshot(self),
+                //         json => {
+                //             window.localStorage.setItem('store', JSON.stringify(json));
+                //         }
+                //     );
+                // }
             }
         };
     });

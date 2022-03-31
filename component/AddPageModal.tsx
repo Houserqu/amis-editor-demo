@@ -21,8 +21,9 @@ export default schema2component(
                     type: 'text',
                     label: '路径',
                     name: 'path',
+                    placeholder: '/ 开头，字母、数字中下划线组合，末尾不需要 /',
                     validations: {
-                        isUrlPath: true
+                        matchRegexp: /^(\/[a-zA-Z0-9_-]+)+$/
                     },
                     required: true,
                     validate(values: any, value: string) {
@@ -30,7 +31,6 @@ export default schema2component(
                         return exists ? '当前路径已被占用，请换一个' : '';
                     }
                 },
-
                 {
                     type: 'icon-picker',
                     label: '图标',
