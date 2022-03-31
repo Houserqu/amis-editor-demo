@@ -7,6 +7,7 @@ import {Link} from 'react-router-dom';
 import NotFound from './NotFound';
 import AMISRenderer from '../component/AMISRenderer';
 import AddPageModal from '../component/AddPageModal';
+import EditPageModal from '../component/EditPageModal';
 import axios from 'axios';
 
 function isActive(link: any, location: any) {
@@ -123,6 +124,18 @@ export default inject('store')(
                                 key="edit"
                                 data-tooltip="编辑"
                                 data-position="bottom"
+                                className={'navbtn fa fa-gear'}
+                                onClick={() => store.setEditPage({
+                                    label: link.label,
+                                    icon: link.icon,
+                                    id: link.pageId,
+                                    path: link.path,
+                                })}
+                            />,
+                            <i
+                                key="design"
+                                data-tooltip="设计页面"
+                                data-position="bottom"
                                 className={'navbtn fa fa-pencil'}
                                 onClick={(e: React.MouseEvent) => {
                                     e.preventDefault();
@@ -189,6 +202,23 @@ export default inject('store')(
             })
         }
 
+        function handleConfirmEdit(params: any) {
+            axios.post('/api/config/update-page', {
+                id: params.id,
+                name: params.label,
+                icon: params.icon,
+                path: params.path
+            }).then(({ data }) => {
+                if(data.errno !== 0) {
+                    alert(data.msg, '修改配置失败')
+                    return
+                }
+                store.setEditPage(null);
+                store.updatePageSchemaData(params.id, params)
+            }).catch(err => {
+                alert(err.message, "网络异常")
+            })
+        }
         return (
             <Layout
                 aside={renderAside()}
@@ -211,6 +241,12 @@ export default inject('store')(
                     onClose={() => store.setAddPageIsOpen(false)}
                     onConfirm={handleConfirm}
                     pages={store.pages.concat()}
+                />
+                <EditPageModal
+                    show={!!store.editPage}
+                    onClose={() => store.setEditPage(null)}
+                    onConfirm={handleConfirmEdit}
+                    page={store.editPage}
                 />
             </Layout>
         );

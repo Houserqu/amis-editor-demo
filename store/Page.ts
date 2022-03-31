@@ -13,8 +13,15 @@ export const PageStore = types
             self.schema = schema;
         }
 
+        function updateBase({ label, path, icon }: any) {
+            self.label = label;
+            self.path = path;
+            self.icon = icon;
+        }
+
         return {
-            updateSchema
+            updateSchema,
+            updateBase
         };
     });
 

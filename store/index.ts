@@ -24,6 +24,7 @@ export const MainStore = types
         asideFolded: false,
         offScreen: false,
         addPageIsOpen: false,
+        editPage: types.maybeNull(PageStore),
         preview: false,
         isMobile: false,
         schema: types.frozen()
@@ -59,6 +60,10 @@ export const MainStore = types
             self.addPageIsOpen = isOpened;
         }
 
+        function setEditPage(editPage: any) {
+            self.editPage = editPage;
+        }
+
         // 新增页面
         function addPage(data: {label: string; path: string; icon?: string; schema?: any; id: string}) {
             self.pages.push(
@@ -74,6 +79,15 @@ export const MainStore = types
         function updatePageSchemaAt(id: string) {
             const index =  self.pages.findIndex(v => v.id == id);
             self.pages[index].updateSchema(self.schema);
+        }
+
+        function updatePageSchemaData(id: string, data: any) {
+            const index =  self.pages.findIndex(v => v.id == id);
+            self.pages[index].updateBase({
+                icon: data.icon,
+                path: data.path,
+                label: data.label,
+            });
         }
 
         function updateSchema(value: any) {
@@ -98,9 +112,11 @@ export const MainStore = types
             toggleAsideFixed,
             toggleOffScreen,
             setAddPageIsOpen,
+            setEditPage,
             addPage,
             removePageAt,
             updatePageSchemaAt,
+            updatePageSchemaData,
             updateSchema,
             setPreview,
             setIsMobile,
