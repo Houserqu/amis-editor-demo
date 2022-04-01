@@ -27,6 +27,7 @@ __uri('amis/schema.json');
 export default inject('store')(
     observer(function ({store, location, history, match}: {store: IMainStore} & RouteComponentProps<{id: string}>) {
         const id: number = parseInt(match.params.id, 10);
+        
         const page: any = store.pages.find(v => v.id == match.params.id)
         if (id !== currentId && page) {
             currentId = id;
@@ -35,6 +36,7 @@ export default inject('store')(
 
         function save() {
             const findPage: any = store.pages.find(v => v.id == match.params.id)
+            store.updatePageSchemaAt(findPage.id);
 
             axios.post('/api/config/update-page', { 
                 id: findPage.id * 1,
@@ -45,7 +47,6 @@ export default inject('store')(
                     return
                 }
 
-                store.updatePageSchemaAt(findPage.id);
                 toast.success('保存成功', '提示');
             }).catch(err => {
                 alert(err.message, "网络异常")
