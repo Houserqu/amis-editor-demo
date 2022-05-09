@@ -38,7 +38,7 @@ export default inject('store')(
             const findPage: any = store.pages.find(v => v.id == match.params.id)
             store.updatePageSchemaAt(findPage.id);
 
-            axios.post('/api/config/update-page', { 
+            axios.post('/api/page/update', { 
                 id: findPage.id * 1,
                 config: JSON.stringify(findPage.schema),
             }).then(({ data }) => {

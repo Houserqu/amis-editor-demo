@@ -123,7 +123,7 @@ export const MainStore = types
             initPages,
             afterCreate() {
                 // 初始化 store 执行一次
-                axios.get('/api/config/pages').then(({ data }) => {
+                axios.get('/api/page/list').then(({ data }) => {
                     if(data.errno !== 0) {
                         alert(data.msg, '获取页面数据失败')
                         return

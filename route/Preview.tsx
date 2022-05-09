@@ -103,7 +103,7 @@ export default inject('store')(
                                         e.preventDefault();
                                         confirm('确认要删除').then(confirmed => {
                                             if(confirmed) {
-                                                axios.post('/api/config/delete-page', { id: link.pageId * 1 }).then(({ data }) => {
+                                                axios.post('/api/page/delete', { id: link.pageId * 1 }).then(({ data }) => {
                                                     if(data.errno !== 0) {
                                                         alert(data.msg, '删除页面失败')
                                                         return
@@ -185,7 +185,7 @@ export default inject('store')(
                 }),
             }
 
-            axios.post('/api/config/create-page', params).then(({ data }) => {
+            axios.post('/api/page/create', params).then(({ data }) => {
                 if(data.errno !== 0) {
                     alert(data.msg, '新增页面失败')
                     return
@@ -203,7 +203,7 @@ export default inject('store')(
         }
 
         function handleConfirmEdit(params: any) {
-            axios.post('/api/config/update-page', {
+            axios.post('/api/page/update', {
                 id: params.id,
                 name: params.label,
                 icon: params.icon,
